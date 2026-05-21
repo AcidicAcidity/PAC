@@ -1,6 +1,7 @@
 # Jira analog in WEB format
 
 My project call's PAC.
+
 PAC - Plan. Assign. Collab. It's own tagline.
 
 ## What YOU can do in owr project?
