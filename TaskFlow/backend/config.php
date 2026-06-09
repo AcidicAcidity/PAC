@@ -6,7 +6,7 @@
 
 declare(strict_types=1);
 
-// Загрузка .env (простой парсер, без библиотек)
+// Загрузка .env (простой парсер)
 function loadEnv(string $path): void
 {
     if (!file_exists($path)) return;
