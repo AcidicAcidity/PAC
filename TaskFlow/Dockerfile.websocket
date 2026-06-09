@@ -1,0 +1,12 @@
+# TaskFlow — WebSocket-сервер (PHP 8.1 CLI + Ratchet)
+FROM php:8.1-cli
+
+# Устанавливаем расширения PHP
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    && docker-php-ext-install pdo_pgsql \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем Redis-расширение
+RUN pecl install redis
