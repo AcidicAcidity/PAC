@@ -74,6 +74,9 @@ try {
         case $method === 'users.updateProfile':
             handleUsersUpdateProfile($currentUser, $params);
             break;
+        case $method === 'users.list':
+            handleUsersList($currentUser);
+            break;
 
         // ============ TASKS ============
         case $method === 'tasks.list':
@@ -395,6 +398,14 @@ function handleAuthRefresh(array $params): void
 function handleUsersMe(array $user): void
 {
     sendResult(['user' => $user]);
+}
+
+function handleUsersList(array $user): void
+{
+    $db = getDB();
+    $stmt = $db->prepare('SELECT id, username, email, avatar_url, portal_role_id FROM users WHERE portal_id = ? AND is_blocked = FALSE ORDER BY username ASC');
+    $stmt->execute([$user['portal_id']]);
+    sendResult(['users' => $stmt->fetchAll()]);
 }
 
 function handleUsersUpdateProfile(array $user, array $params): void
