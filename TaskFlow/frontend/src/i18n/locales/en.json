@@ -1,0 +1,109 @@
+{
+  "app": {
+    "name": "TaskFlow",
+    "tagline": "Corporate portal for tasks and communication"
+  },
+  "nav": {
+    "board": "Kanban",
+    "collabs": "Collabs",
+    "messages": "Messages",
+    "reviews": "Reviews",
+    "admin": "Admin",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "landing": {
+    "start": "Get started",
+    "login": "Sign in"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "username": "Username",
+    "company": "Company name",
+    "inviteCode": "Invite code",
+    "iAmAdmin": "I'm an admin",
+    "iAmEmployee": "I'm an employee",
+    "register": "Register",
+    "login": "Sign in",
+    "verify": "Email verification",
+    "verifyCode": "Verification code",
+    "submit": "Submit",
+    "back": "Back"
+  },
+  "board": {
+    "title": "Kanban board",
+    "newTask": "New task",
+    "editTask": "Edit task",
+    "titleField": "Title",
+    "description": "Description",
+    "priority": "Priority",
+    "assignee": "Assignee",
+    "public": "Public task",
+    "save": "Save",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "priorities": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    }
+  },
+  "collabs": {
+    "title": "Collabs",
+    "create": "Create collab",
+    "name": "Name",
+    "description": "Description",
+    "chat": "Collab chat",
+    "send": "Send"
+  },
+  "messages": {
+    "title": "Private messages",
+    "selectUser": "Select a user",
+    "placeholder": "Type a message...",
+    "send": "Send"
+  },
+  "reviews": {
+    "title": "Portal reviews",
+    "rating": "Rating",
+    "content": "Review text",
+    "submit": "Submit review",
+    "pending": "Pending moderation"
+  },
+  "admin": {
+    "title": "Admin panel",
+    "users": "Users",
+    "roles": "Roles",
+    "invites": "Invites",
+    "collabs": "Collabs",
+    "tasks": "Tasks",
+    "reviews": "Reviews",
+    "columns": "Columns",
+    "block": "Block",
+    "unblock": "Unblock",
+    "approve": "Approve",
+    "createInvite": "Create invite",
+    "createRole": "Create role",
+    "roleName": "Role name",
+    "hierarchy": "Hierarchy level"
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": "Theme",
+    "language": "Language",
+    "profile": "Profile",
+    "save": "Save"
+  },
+  "themes": {
+    "light": "Light",
+    "dark": "Dark",
+    "cyberpunk": "Cyberpunk",
+    "nature": "Nature"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "noData": "No data",
+    "success": "Done"
+  }
+}
