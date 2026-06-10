@@ -8,7 +8,14 @@
       @dragover.prevent
       @drop="onDrop($event, column.id)"
     >
-      <div class="column-header" :style="{ borderTopColor: column.color }">
+      <div
+        class="column-header"
+        :style="{
+          borderTopColor: column.color || '#808080',
+          background: `color-mix(in srgb, ${column.color || '#808080'} 18%, var(--bg-secondary))`,
+        }"
+      >
+        <div class="column-color-bar" :style="{ background: column.color || '#808080' }" />
         <h3>{{ column.title }}</h3>
         <span class="count">{{ tasksInColumn(column.id).length }}</span>
       </div>
@@ -20,6 +27,7 @@
           draggable="true"
           @dragstart="onDragStart($event, task)"
           @click="$emit('edit', task)"
+          @toggle-active="$emit('toggle-active', task)"
         />
       </div>
     </div>
@@ -34,7 +42,7 @@ const props = defineProps({
   tasks: { type: Array, required: true },
 })
 
-const emit = defineEmits(['edit', 'move'])
+const emit = defineEmits(['edit', 'move', 'toggle-active'])
 
 let draggedTask = null
 
@@ -76,10 +84,20 @@ function onDrop(event, columnId) {
 
 .column-header {
   padding: 0.85rem 1.1rem;
-  border-top: 4px solid var(--accent);
+  border-top: 10px solid var(--accent);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  gap: 0.5rem;
+}
+
+.column-color-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
 }
 
 .column-header h3 {

@@ -90,6 +90,17 @@ CREATE TABLE IF NOT EXISTS collab_members (
     PRIMARY KEY (collab_id, user_id)
 );
 
+-- Воронки канбан-доски (главная + коллабы)
+CREATE TABLE IF NOT EXISTS funnels (
+    id SERIAL PRIMARY KEY,
+    portal_id INTEGER NOT NULL REFERENCES portals(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    collab_id INTEGER REFERENCES collabs(id) ON DELETE CASCADE,
+    is_main BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE (portal_id, collab_id)
+);
+
 -- Колонки канбан-доски
 CREATE TABLE IF NOT EXISTS board_columns (
     id SERIAL PRIMARY KEY,
@@ -113,6 +124,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     portal_id INTEGER NOT NULL REFERENCES portals(id) ON DELETE CASCADE,
     position INTEGER DEFAULT 0,
     is_public BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    deadline DATE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -160,6 +173,8 @@ CREATE INDEX IF NOT EXISTS idx_tasks_portal ON tasks(portal_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_column ON tasks(column_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON tasks(assignee_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_collab ON tasks(collab_id);
+CREATE INDEX IF NOT EXISTS idx_funnels_portal ON funnels(portal_id);
+CREATE INDEX IF NOT EXISTS idx_funnels_collab ON funnels(collab_id);
 CREATE INDEX IF NOT EXISTS idx_private_messages_users ON private_messages(sender_id, receiver_id);
 CREATE INDEX IF NOT EXISTS idx_collab_messages_collab ON collab_messages(collab_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_approved ON reviews(is_approved) WHERE is_approved = TRUE;

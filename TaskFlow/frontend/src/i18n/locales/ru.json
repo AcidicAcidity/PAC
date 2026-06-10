@@ -10,11 +10,25 @@
     "reviews": "Отзывы",
     "admin": "Админ",
     "settings": "Настройки",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "expand": "Развернуть",
+    "collapse": "Свернуть"
   },
   "landing": {
     "start": "Начать",
-    "login": "Войти"
+    "login": "Войти",
+    "featuresTitle": "Возможности TaskFlow",
+    "feature1Title": "Канбан-доска",
+    "feature1Desc": "Управляйте задачами по стадиям с drag-and-drop, приоритетами и дедлайнами",
+    "feature2Title": "Коллабы",
+    "feature2Desc": "Рабочие группы с общим чатом и задачами для команды",
+    "feature3Title": "Личные сообщения",
+    "feature3Desc": "Быстрая переписка между сотрудниками в реальном времени",
+    "feature4Title": "Иерархия ролей",
+    "feature4Desc": "Гибкая система ролей и прав для корпоративной структуры",
+    "reviewsTitle": "Отзывы пользователей",
+    "theme": "Тема",
+    "language": "Язык"
   },
   "auth": {
     "email": "Email",
@@ -51,7 +65,14 @@
       "low": "Низкий",
       "medium": "Средний",
       "high": "Высокий"
-    }
+    },
+    "column": "Стадия",
+    "deadline": "Крайний срок",
+    "status": "Состояние",
+    "active": "Активна",
+    "inactive": "Завершена",
+    "toggleStatus": "Переключить состояние",
+    "funnel": "Воронка"
   },
   "collabs": {
     "title": "Коллабы",
@@ -93,7 +114,18 @@
     "createInvite": "Создать приглашение",
     "createRole": "Создать роль",
     "roleName": "Название роли",
-    "hierarchy": "Уровень иерархии"
+    "hierarchy": "Уровень иерархии",
+    "setRole": "Назначить роль",
+    "columnTitle": "Название колонки",
+    "columnColor": "Цвет",
+    "columnPosition": "Позиция",
+    "addColumn": "Добавить колонку",
+    "editColumn": "Сохранить",
+    "deleteColumn": "Удалить",
+    "deleteReview": "Удалить",
+    "deleteReviewConfirm": "Удалить отзыв?",
+    "loadError": "Не удалось загрузить данные",
+    "panel": "Админ-панель"
   },
   "settings": {
     "title": "Настройки",
@@ -113,6 +145,7 @@
     "loading": "Загрузка...",
     "error": "Ошибка",
     "noData": "Нет данных",
-    "success": "Готово"
+    "success": "Готово",
+    "unknownUser": "Пользователь"
   }
 }

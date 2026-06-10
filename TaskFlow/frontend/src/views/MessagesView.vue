@@ -62,7 +62,7 @@ function connectWs() {
     if (data.type !== 'private' || !selectedUser.value) return
     if (data.sender_id === auth.user?.id) return
 
-    const otherId = data.sender_id === auth.user.id ? data.receiver_id : data.sender_id
+    const otherId = data.sender_id === auth.user?.id ? data.receiver_id : data.sender_id
     if (otherId !== selectedUser.value.id) return
 
     const exists = messages.value.some(

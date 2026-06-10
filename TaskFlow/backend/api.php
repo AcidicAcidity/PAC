@@ -42,7 +42,7 @@ $params = $request['params'] ?? [];
 checkRateLimit();
 
 // Список публичных методов (не требуют авторизации)
-$publicMethods = ['auth.register', 'auth.verify', 'auth.resend', 'auth.login', 'auth.refresh', 'tasks.list'];
+$publicMethods = ['auth.register', 'auth.verify', 'auth.resend', 'auth.login', 'auth.refresh', 'tasks.list', 'reviews.public'];
 
 $requiresAuth = !in_array($method, $publicMethods);
 $currentUser = null;
@@ -111,8 +111,15 @@ try {
             break;
 
         // ============ COLLABS ============
+        case $method === 'funnels.list':
+            handleFunnelsList($currentUser);
+            break;
+
         case $method === 'collabs.list':
             handleCollabsList($currentUser);
+            break;
+        case $method === 'collabs.get':
+            handleCollabsGet($currentUser, $params);
             break;
         case $method === 'collabs.create':
             handleCollabsCreate($currentUser, $params);
@@ -139,6 +146,9 @@ try {
             break;
 
         // ============ REVIEWS ============
+        case $method === 'reviews.public':
+            handleReviewsPublic($params);
+            break;
         case $method === 'reviews.list':
             handleReviewsList($currentUser, $params);
             break;
@@ -172,6 +182,19 @@ function sendJson(array $data, int $code = 200): void
     http_response_code($code);
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+function toPgBool(mixed $value): string
+{
+    if ($value === true || $value === 1 || $value === '1' || $value === 'true' || $value === 't') {
+        return 'true';
+    }
+    return 'false';
+}
+
+function isPgTrue(mixed $value): bool
+{
+    return $value === true || $value === 't' || $value === 'true' || $value === 1 || $value === '1';
 }
 
 function sendResult(mixed $result): void
@@ -234,16 +257,35 @@ function handleAuthRegister(array $params): void
                 ['Супервайзер', 3],
                 ['Техспециалист', 4],
             ];
-            $stmtRole = $db->prepare('INSERT INTO portal_roles (portal_id, name, hierarchy_level) VALUES (?, ?, ?)');
+            $stmtRole = $db->prepare('INSERT INTO portal_roles (portal_id, name, hierarchy_level) VALUES (?, ?, ?) RETURNING id');
+            $directorRoleId = null;
             foreach ($defaultRoles as [$name, $level]) {
                 $stmtRole->execute([$portalId, $name, $level]);
+                if ($name === 'Директор') {
+                    $directorRoleId = (int)$stmtRole->fetchColumn();
+                }
             }
 
+            // Назначаем администратору портала роль «Директор»
+            if ($directorRoleId) {
+                $db->prepare('UPDATE users SET portal_role_id = ? WHERE id = ?')
+                    ->execute([$directorRoleId, $userId]);
+            }
+
+            // Главная воронка канбан-доски
+            $db->prepare('INSERT INTO funnels (portal_id, name, is_main) VALUES (?, ?, TRUE)')
+                ->execute([$portalId, 'Главная']);
+
             // Создаём дефолтные колонки канбан-доски
-            $defaultColumns = ['Новые', 'В работе', 'На проверке', 'Готово'];
-            $stmtCol = $db->prepare('INSERT INTO board_columns (portal_id, title, position) VALUES (?, ?, ?)');
-            foreach ($defaultColumns as $i => $title) {
-                $stmtCol->execute([$portalId, $title, $i]);
+            $defaultColumns = [
+                ['Новые', '#3b82f6'],
+                ['В работе', '#f59e0b'],
+                ['На проверке', '#8b5cf6'],
+                ['Готово', '#22c55e'],
+            ];
+            $stmtCol = $db->prepare('INSERT INTO board_columns (portal_id, title, position, color) VALUES (?, ?, ?, ?)');
+            foreach ($defaultColumns as $i => [$title, $color]) {
+                $stmtCol->execute([$portalId, $title, $i, $color]);
             }
 
             $db->commit();
@@ -488,9 +530,44 @@ function handleTasksList(?array $user, array $params): void
     $db = getDB();
     $conditions = [];
     $bindings = [];
+    $collabFunnelMode = false;
 
     if ($user) {
-        // Авторизованный пользователь: видит свои задачи + публичные
+        $conditions[] = 't.portal_id = ?';
+        $bindings[] = $user['portal_id'];
+
+        if (!empty($params['funnel_id'])) {
+            $funnelId = (int)$params['funnel_id'];
+            $stmt = $db->prepare('SELECT * FROM funnels WHERE id = ? AND portal_id = ?');
+            $stmt->execute([$funnelId, $user['portal_id']]);
+            $funnel = $stmt->fetch();
+            if (!$funnel) {
+                sendError('Funnel not found');
+            }
+
+            if (isPgTrue($funnel['is_main'])) {
+                $conditions[] = 't.collab_id IS NULL';
+            } else {
+                $collabId = (int)$funnel['collab_id'];
+                if ($user['role'] !== 'admin') {
+                    $memberCheck = $db->prepare('SELECT 1 FROM collab_members WHERE collab_id = ? AND user_id = ?');
+                    $memberCheck->execute([$collabId, $user['id']]);
+                    if (!$memberCheck->fetch()) {
+                        sendError('Access denied');
+                    }
+                }
+                $conditions[] = 't.collab_id = ?';
+                $bindings[] = $collabId;
+                $collabFunnelMode = true;
+            }
+        }
+
+        if ($user['role'] !== 'admin' && !$collabFunnelMode) {
+            $conditions[] = '(t.creator_id = ? OR t.assignee_id = ? OR t.is_public = TRUE)';
+            $bindings[] = $user['id'];
+            $bindings[] = $user['id'];
+        }
+
         if (!empty($params['column_id'])) {
             $conditions[] = 't.column_id = ?';
             $bindings[] = $params['column_id'];
@@ -501,11 +578,12 @@ function handleTasksList(?array $user, array $params): void
         }
         if (isset($params['is_public'])) {
             $conditions[] = 't.is_public = ?';
-            $bindings[] = $params['is_public'] ? 'true' : 'false';
+            $bindings[] = toPgBool($params['is_public']);
         }
     } else {
         // Гость: только публичные задачи
         $conditions[] = 't.is_public = TRUE';
+        $conditions[] = 't.collab_id IS NULL';
     }
 
     $where = $conditions ? 'WHERE ' . implode(' AND ', $conditions) : '';
@@ -541,23 +619,42 @@ function handleTasksCreate(array $user, array $params): void
         }
     }
 
-    $stmt = $db->prepare('INSERT INTO tasks (title, description, priority, creator_id, assignee_id, collab_id, column_id, portal_id, position, is_public)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id');
+    $collabId = $params['collab_id'] ?? null;
+    if (!empty($params['funnel_id']) && !$collabId) {
+        $stmt = $db->prepare('SELECT collab_id, is_main FROM funnels WHERE id = ? AND portal_id = ?');
+        $stmt->execute([(int)$params['funnel_id'], $user['portal_id']]);
+        $funnel = $stmt->fetch();
+        if ($funnel && !isPgTrue($funnel['is_main']) && $funnel['collab_id']) {
+            $collabId = (int)$funnel['collab_id'];
+            if ($user['role'] !== 'admin') {
+                $memberCheck = $db->prepare('SELECT 1 FROM collab_members WHERE collab_id = ? AND user_id = ?');
+                $memberCheck->execute([$collabId, $user['id']]);
+                if (!$memberCheck->fetch()) {
+                    sendError('Access denied');
+                }
+            }
+        }
+    }
+
+    $stmt = $db->prepare('INSERT INTO tasks (title, description, priority, creator_id, assignee_id, collab_id, column_id, portal_id, position, is_public, is_active, deadline)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id');
     $stmt->execute([
         $title,
         $params['description'] ?? '',
         $params['priority'] ?? 'medium',
         $user['id'],
         $assigneeId,
-        $params['collab_id'] ?? null,
+        $collabId,
         $params['column_id'] ?? null,
         $user['portal_id'],
         $params['position'] ?? 0,
         !empty($params['is_public']) ? 'true' : 'false',
+        isset($params['is_active']) ? ($params['is_active'] ? 'true' : 'false') : 'true',
+        $params['deadline'] ?? null,
     ]);
 
     $taskId = $stmt->fetchColumn();
-    $task = $db->prepare('SELECT * FROM tasks WHERE id = ?');
+    $task = $db->prepare('SELECT t.*, u.username AS creator_name, u2.username AS assignee_name FROM tasks t LEFT JOIN users u ON t.creator_id = u.id LEFT JOIN users u2 ON t.assignee_id = u2.id WHERE t.id = ?');
     $task->execute([$taskId]);
 
     // Инвалидируем кеш канбана
@@ -578,31 +675,57 @@ function handleTasksUpdate(array $user, array $params): void
 
     if (!$task) sendError('Task not found');
     if ($task['portal_id'] !== $user['portal_id']) sendError('Access denied');
-    if ($user['role'] !== 'admin' && $task['creator_id'] !== $user['id']) {
-        sendError('Only creator or admin can edit this task');
+
+    $isAdmin = $user['role'] === 'admin';
+    $isCreator = (int)$task['creator_id'] === (int)$user['id'];
+    $isAssignee = (int)$task['assignee_id'] === (int)$user['id'];
+    $canFullEdit = $isAdmin || $isCreator;
+    $canAssigneeEdit = $isAssignee && !$canFullEdit;
+
+    if (!$canFullEdit && !$canAssigneeEdit) {
+        sendError('Access denied');
     }
 
     $updates = [];
     $bindings = [];
 
-    foreach (['title', 'description', 'priority', 'column_id', 'position', 'is_public'] as $field) {
-        if (array_key_exists($field, $params)) {
-            $updates[] = "{$field} = ?";
-            $bindings[] = $field === 'is_public' ? ($params[$field] ? 'true' : 'false') : $params[$field];
+    $fullEditFields = ['title', 'description', 'priority', 'column_id', 'position', 'is_public', 'is_active', 'deadline'];
+    $assigneeFields = ['column_id', 'is_active'];
+
+    foreach ($fullEditFields as $field) {
+        if (!array_key_exists($field, $params)) continue;
+        if ($canAssigneeEdit && !in_array($field, $assigneeFields, true)) continue;
+
+        $updates[] = "{$field} = ?";
+        if (in_array($field, ['is_public', 'is_active'], true)) {
+            $bindings[] = toPgBool($params[$field]);
+        } elseif ($field === 'deadline') {
+            $bindings[] = $params[$field] ?: null;
+        } elseif ($field === 'column_id') {
+            $bindings[] = $params[$field] ? (int)$params[$field] : null;
+        } else {
+            $bindings[] = $params[$field];
         }
     }
 
-    // Смена исполнителя с проверкой иерархии
-    if (isset($params['assignee_id']) && $params['assignee_id'] != $task['assignee_id']) {
-        $assignee = getUserById((int)$params['assignee_id']);
-        if (!$assignee || $assignee['portal_id'] !== $user['portal_id']) {
-            sendError('Invalid assignee');
+    // Смена исполнителя с проверкой иерархии (только создатель или админ)
+    if ($canFullEdit && array_key_exists('assignee_id', $params)) {
+        $newAssigneeId = $params['assignee_id'];
+        if ($newAssigneeId === '' || $newAssigneeId === null) {
+            if ($task['assignee_id'] !== null && $task['assignee_id'] !== '') {
+                $updates[] = 'assignee_id = NULL';
+            }
+        } elseif ((int)$newAssigneeId !== (int)$task['assignee_id']) {
+            $assignee = getUserById((int)$newAssigneeId);
+            if (!$assignee || $assignee['portal_id'] !== $user['portal_id']) {
+                sendError('Invalid assignee');
+            }
+            if (empty($task['collab_id']) && !canAssignTo($user, $assignee)) {
+                sendError('Cannot assign task due to hierarchy');
+            }
+            $updates[] = 'assignee_id = ?';
+            $bindings[] = (int)$newAssigneeId;
         }
-        if (empty($task['collab_id']) && !canAssignTo($user, $assignee)) {
-            sendError('Cannot assign task due to hierarchy');
-        }
-        $updates[] = 'assignee_id = ?';
-        $bindings[] = $params['assignee_id'];
     }
 
     if ($updates) {
@@ -614,7 +737,7 @@ function handleTasksUpdate(array $user, array $params): void
 
     try { getRedis()->del("kanban:{$user['portal_id']}"); } catch (\Exception $e) {}
 
-    $stmt = $db->prepare('SELECT * FROM tasks WHERE id = ?');
+    $stmt = $db->prepare('SELECT t.*, u.username AS creator_name, u2.username AS assignee_name FROM tasks t LEFT JOIN users u ON t.creator_id = u.id LEFT JOIN users u2 ON t.assignee_id = u2.id WHERE t.id = ?');
     $stmt->execute([$taskId]);
     sendResult(['task' => $stmt->fetch()]);
 }
@@ -665,8 +788,20 @@ function handleBoardColumnsUpdate(array $user, array $params): void
 {
     requirePortalAdmin($user);
     $db = getDB();
+    $id = (int)($params['id'] ?? 0);
+    if (!$id) sendError('Column ID is required');
+
+    $stmt = $db->prepare('SELECT * FROM board_columns WHERE id = ? AND portal_id = ?');
+    $stmt->execute([$id, $user['portal_id']]);
+    $column = $stmt->fetch();
+    if (!$column) sendError('Column not found');
+
+    $title = $params['title'] ?? $column['title'];
+    $position = $params['position'] ?? $column['position'];
+    $color = $params['color'] ?? $column['color'] ?? '#808080';
+
     $db->prepare('UPDATE board_columns SET title = ?, position = ?, color = ? WHERE id = ? AND portal_id = ?')
-        ->execute([$params['title'], $params['position'], $params['color'] ?? '#808080', $params['id'], $user['portal_id']]);
+        ->execute([$title, $position, $color, $id, $user['portal_id']]);
     sendResult(['message' => 'Column updated']);
 }
 
@@ -683,17 +818,73 @@ function handleBoardColumnsDelete(array $user, array $params): void
 // COLLABS HANDLERS
 // ============================================================
 
+function handleFunnelsList(array $user): void
+{
+    $db = getDB();
+    if ($user['role'] === 'admin') {
+        $stmt = $db->prepare('SELECT * FROM funnels WHERE portal_id = ? ORDER BY is_main DESC, name ASC');
+        $stmt->execute([$user['portal_id']]);
+    } else {
+        $stmt = $db->prepare('
+            SELECT f.*
+            FROM funnels f
+            LEFT JOIN collab_members cm ON f.collab_id = cm.collab_id AND cm.user_id = ?
+            WHERE f.portal_id = ? AND (f.is_main = TRUE OR cm.user_id IS NOT NULL)
+            ORDER BY f.is_main DESC, f.name ASC
+        ');
+        $stmt->execute([$user['id'], $user['portal_id']]);
+    }
+    sendResult(['funnels' => $stmt->fetchAll()]);
+}
+
 function handleCollabsList(array $user): void
 {
     $db = getDB();
-    $stmt = $db->prepare('
-        SELECT c.*, cm.role as member_role
-        FROM collabs c
-        JOIN collab_members cm ON c.id = cm.collab_id AND cm.user_id = ?
-        ORDER BY c.created_at DESC
-    ');
-    $stmt->execute([$user['id']]);
+    if ($user['role'] === 'admin') {
+        $stmt = $db->prepare('
+            SELECT c.*, cm.role AS member_role
+            FROM collabs c
+            LEFT JOIN collab_members cm ON c.id = cm.collab_id AND cm.user_id = ?
+            WHERE c.portal_id = ?
+            ORDER BY c.created_at DESC
+        ');
+        $stmt->execute([$user['id'], $user['portal_id']]);
+    } else {
+        $stmt = $db->prepare('
+            SELECT c.*, cm.role as member_role
+            FROM collabs c
+            JOIN collab_members cm ON c.id = cm.collab_id AND cm.user_id = ?
+            ORDER BY c.created_at DESC
+        ');
+        $stmt->execute([$user['id']]);
+    }
     sendResult(['collabs' => $stmt->fetchAll()]);
+}
+
+function handleCollabsGet(array $user, array $params): void
+{
+    $db = getDB();
+    $collabId = (int)($params['id'] ?? 0);
+    if (!$collabId) sendError('Collab ID is required');
+
+    $stmt = $db->prepare('SELECT * FROM collabs WHERE id = ? AND portal_id = ?');
+    $stmt->execute([$collabId, $user['portal_id']]);
+    $collab = $stmt->fetch();
+    if (!$collab) sendError('Collab not found');
+
+    if ($user['role'] !== 'admin') {
+        $memberCheck = $db->prepare('SELECT role FROM collab_members WHERE collab_id = ? AND user_id = ?');
+        $memberCheck->execute([$collabId, $user['id']]);
+        $memberRole = $memberCheck->fetchColumn();
+        if (!$memberRole) sendError('Access denied');
+        $collab['member_role'] = $memberRole;
+    } else {
+        $memberCheck = $db->prepare('SELECT role FROM collab_members WHERE collab_id = ? AND user_id = ?');
+        $memberCheck->execute([$collabId, $user['id']]);
+        $collab['member_role'] = $memberCheck->fetchColumn() ?: 'admin';
+    }
+
+    sendResult(['collab' => $collab]);
 }
 
 function handleCollabsCreate(array $user, array $params): void
@@ -707,6 +898,9 @@ function handleCollabsCreate(array $user, array $params): void
 
         $db->prepare("INSERT INTO collab_members (collab_id, user_id, role) VALUES (?, ?, 'admin')")
             ->execute([$collabId, $user['id']]);
+
+        $db->prepare('INSERT INTO funnels (portal_id, name, collab_id, is_main) VALUES (?, ?, ?, FALSE)')
+            ->execute([$user['portal_id'], $params['name'], $collabId]);
 
         $db->commit();
         sendResult(['collab_id' => $collabId]);
@@ -722,9 +916,15 @@ function handleCollabsMembersList(array $user, array $params): void
     $collabId = (int)($params['collab_id'] ?? 0);
     if (!$collabId) sendError('Collab ID is required');
 
-    $stmt = $db->prepare('SELECT 1 FROM collab_members WHERE collab_id = ? AND user_id = ?');
-    $stmt->execute([$collabId, $user['id']]);
-    if (!$stmt->fetch()) sendError('Not a member of this collab');
+    if ($user['role'] !== 'admin') {
+        $stmt = $db->prepare('SELECT 1 FROM collab_members WHERE collab_id = ? AND user_id = ?');
+        $stmt->execute([$collabId, $user['id']]);
+        if (!$stmt->fetch()) sendError('Not a member of this collab');
+    } else {
+        $stmt = $db->prepare('SELECT 1 FROM collabs WHERE id = ? AND portal_id = ?');
+        $stmt->execute([$collabId, $user['portal_id']]);
+        if (!$stmt->fetch()) sendError('Collab not found');
+    }
 
     $stmt = $db->prepare('
         SELECT u.id, u.username, u.email, u.avatar_url, cm.role, cm.joined_at
@@ -777,10 +977,18 @@ function handleCollabsRemoveMember(array $user, array $params): void
 function handleCollabsGetMessages(array $user, array $params): void
 {
     $db = getDB();
-    // Проверяем членство
-    $stmt = $db->prepare('SELECT 1 FROM collab_members WHERE collab_id = ? AND user_id = ?');
-    $stmt->execute([$params['collab_id'], $user['id']]);
-    if (!$stmt->fetch()) sendError('Not a member of this collab');
+    $collabId = (int)($params['collab_id'] ?? 0);
+    if (!$collabId) sendError('Collab ID is required');
+
+    if ($user['role'] !== 'admin') {
+        $stmt = $db->prepare('SELECT 1 FROM collab_members WHERE collab_id = ? AND user_id = ?');
+        $stmt->execute([$collabId, $user['id']]);
+        if (!$stmt->fetch()) sendError('Not a member of this collab');
+    } else {
+        $stmt = $db->prepare('SELECT 1 FROM collabs WHERE id = ? AND portal_id = ?');
+        $stmt->execute([$collabId, $user['portal_id']]);
+        if (!$stmt->fetch()) sendError('Collab not found');
+    }
 
     $limit = min((int)($params['limit'] ?? 50), 200);
     $stmt = $db->prepare('
@@ -806,9 +1014,11 @@ function handleMessagesPrivateList(array $user, array $params): void
     $limit = min((int)($params['limit'] ?? 50), 200);
 
     $stmt = $db->prepare('
-        SELECT * FROM private_messages
-        WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
-        ORDER BY created_at DESC
+        SELECT pm.*, u.username, u.username AS sender_name
+        FROM private_messages pm
+        JOIN users u ON pm.sender_id = u.id
+        WHERE (pm.sender_id = ? AND pm.receiver_id = ?) OR (pm.sender_id = ? AND pm.receiver_id = ?)
+        ORDER BY pm.created_at DESC
         LIMIT ?
     ');
     $stmt->execute([$user['id'], $otherId, $otherId, $user['id'], $limit]);
@@ -849,6 +1059,21 @@ function handleMessagesSend(array $user, array $params): void
 // ============================================================
 // REVIEWS HANDLERS
 // ============================================================
+
+function handleReviewsPublic(array $params): void
+{
+    $db = getDB();
+    $stmt = $db->prepare('
+        SELECT r.*, u.username
+        FROM reviews r
+        JOIN users u ON r.user_id = u.id
+        WHERE r.is_approved = TRUE
+        ORDER BY r.created_at DESC
+        LIMIT 12
+    ');
+    $stmt->execute();
+    sendResult(['reviews' => $stmt->fetchAll()]);
+}
 
 function handleReviewsList(array $user, array $params): void
 {
@@ -895,8 +1120,9 @@ function handleAdminMethods(array $user, string $method, array $params): void
             break;
 
         case 'admin.users.setRole':
+            $roleId = !empty($params['portal_role_id']) ? (int)$params['portal_role_id'] : null;
             $db->prepare('UPDATE users SET portal_role_id = ? WHERE id = ? AND portal_id = ?')
-                ->execute([$params['portal_role_id'], $params['user_id'], $user['portal_id']]);
+                ->execute([$roleId, $params['user_id'], $user['portal_id']]);
             sendResult(['message' => 'Role updated']);
             break;
 
@@ -920,8 +1146,8 @@ function handleAdminMethods(array $user, string $method, array $params): void
             break;
 
         case 'admin.roles.create':
-            $db->prepare('INSERT INTO portal_roles (portal_id, name, hierarchy_level) VALUES (?, ?, ?) RETURNING id')
-                ->execute([$user['portal_id'], $params['name'], $params['hierarchy_level']]);
+            $stmt = $db->prepare('INSERT INTO portal_roles (portal_id, name, hierarchy_level) VALUES (?, ?, ?) RETURNING id');
+            $stmt->execute([$user['portal_id'], $params['name'], $params['hierarchy_level']]);
             sendResult(['role_id' => $stmt->fetchColumn()]);
             break;
 

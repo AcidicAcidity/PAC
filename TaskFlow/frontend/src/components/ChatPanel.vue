@@ -9,7 +9,7 @@
           class="message"
           :class="{ own: msg.sender_id === currentUserId }"
         >
-          <div class="sender">{{ msg.sender_name || msg.username || 'User' }}</div>
+          <div class="sender">{{ displayName(msg) }}</div>
           <div class="content">{{ msg.content }}</div>
           <div class="time">{{ formatTime(msg.created_at) }}</div>
         </div>
@@ -56,6 +56,10 @@ function send() {
   if (!text.value.trim()) return
   emit('send', text.value.trim())
   text.value = ''
+}
+
+function displayName(msg) {
+  return msg.sender_name || msg.username || t('common.unknownUser')
 }
 
 function formatTime(ts) {

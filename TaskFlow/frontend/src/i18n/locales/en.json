@@ -10,11 +10,25 @@
     "reviews": "Reviews",
     "admin": "Admin",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "expand": "Expand",
+    "collapse": "Collapse"
   },
   "landing": {
     "start": "Get started",
-    "login": "Sign in"
+    "login": "Sign in",
+    "featuresTitle": "TaskFlow features",
+    "feature1Title": "Kanban board",
+    "feature1Desc": "Manage tasks across stages with drag-and-drop, priorities and deadlines",
+    "feature2Title": "Collabs",
+    "feature2Desc": "Work groups with shared chat and team tasks",
+    "feature3Title": "Private messages",
+    "feature3Desc": "Fast real-time messaging between employees",
+    "feature4Title": "Role hierarchy",
+    "feature4Desc": "Flexible roles and permissions for your org structure",
+    "reviewsTitle": "User reviews",
+    "theme": "Theme",
+    "language": "Language"
   },
   "auth": {
     "email": "Email",
@@ -51,7 +65,14 @@
       "low": "Low",
       "medium": "Medium",
       "high": "High"
-    }
+    },
+    "column": "Stage",
+    "deadline": "Deadline",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "toggleStatus": "Toggle status",
+    "funnel": "Funnel"
   },
   "collabs": {
     "title": "Collabs",
@@ -93,7 +114,18 @@
     "createInvite": "Create invite",
     "createRole": "Create role",
     "roleName": "Role name",
-    "hierarchy": "Hierarchy level"
+    "hierarchy": "Hierarchy level",
+    "setRole": "Assign role",
+    "columnTitle": "Column title",
+    "columnColor": "Color",
+    "columnPosition": "Position",
+    "addColumn": "Add column",
+    "editColumn": "Save",
+    "deleteColumn": "Delete",
+    "deleteReview": "Delete",
+    "deleteReviewConfirm": "Delete this review?",
+    "loadError": "Failed to load data",
+    "panel": "Admin panel"
   },
   "settings": {
     "title": "Settings",
@@ -113,6 +145,7 @@
     "loading": "Loading...",
     "error": "Error",
     "noData": "No data",
-    "success": "Done"
+    "success": "Done",
+    "unknownUser": "User"
   }
 }

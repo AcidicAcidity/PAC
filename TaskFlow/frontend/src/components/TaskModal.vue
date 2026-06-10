@@ -20,11 +20,32 @@
           </select>
         </div>
         <div class="form-group">
+          <label>{{ t('board.column') }}</label>
+          <select v-model="form.column_id">
+            <option v-for="col in columns" :key="col.id" :value="col.id">{{ col.title }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ t('board.deadline') }}</label>
+          <input v-model="form.deadline" type="date" />
+        </div>
+        <div class="form-group">
           <label>{{ t('board.assignee') }}</label>
           <select v-model="form.assignee_id">
             <option :value="null">—</option>
             <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
           </select>
+        </div>
+        <div class="form-group status-row">
+          <label>{{ t('board.status') }}</label>
+          <button
+            type="button"
+            class="status-toggle"
+            :class="{ inactive: !form.is_active }"
+            @click="form.is_active = !form.is_active"
+          >
+            {{ form.is_active ? t('board.active') : t('board.inactive') }}
+          </button>
         </div>
         <div class="form-group checkbox">
           <label>
@@ -39,7 +60,7 @@
             {{ t('board.cancel') }}
           </button>
           <button
-            v-if="task"
+            v-if="task && canDelete"
             type="button"
             class="btn btn-danger"
             @click="$emit('delete', task.id)"
@@ -53,18 +74,26 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   task: { type: Object, default: null },
   users: { type: Array, default: () => [] },
+  columns: { type: Array, default: () => [] },
   defaultColumnId: { type: Number, default: null },
 })
 
 const emit = defineEmits(['close', 'save', 'delete'])
 const { t } = useI18n()
+const auth = useAuthStore()
 const error = ref('')
+
+const canDelete = computed(() => {
+  if (!props.task) return false
+  return auth.isAdmin || props.task.creator_id === auth.user?.id
+})
 
 const form = ref({
   title: '',
@@ -73,6 +102,8 @@ const form = ref({
   assignee_id: null,
   is_public: false,
   column_id: null,
+  deadline: '',
+  is_active: true,
 })
 
 watch(
@@ -86,6 +117,8 @@ watch(
         assignee_id: task.assignee_id,
         is_public: !!task.is_public,
         column_id: task.column_id,
+        deadline: task.deadline ? task.deadline.slice(0, 10) : '',
+        is_active: task.is_active !== false && task.is_active !== 'f',
       }
     } else {
       form.value = {
@@ -95,6 +128,8 @@ watch(
         assignee_id: null,
         is_public: false,
         column_id: props.defaultColumnId,
+        deadline: '',
+        is_active: true,
       }
     }
   },
@@ -103,7 +138,11 @@ watch(
 
 function submit() {
   error.value = ''
-  emit('save', { ...form.value, id: props.task?.id })
+  emit('save', {
+    ...form.value,
+    id: props.task?.id,
+    deadline: form.value.deadline || null,
+  })
 }
 </script>
 
@@ -137,6 +176,29 @@ function submit() {
 
 .checkbox input {
   width: auto;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.status-toggle {
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.status-toggle.inactive {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  color: var(--danger);
 }
 
 .actions {

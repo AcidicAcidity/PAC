@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow API Docs</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
+  <style>
+    body { margin: 0; background: #fafafa; }
+    .top-bar {
+      background: #1e293b;
+      color: #fff;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .top-bar h1 { margin: 0; font-size: 1.25rem; }
+    .top-bar a { color: #93c5fd; }
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: calc(100vh - 56px);
+    }
+    @media (max-width: 960px) {
+      .panels { grid-template-columns: 1fr; }
+    }
+    .try-panel {
+      padding: 1.25rem;
+      background: #fff;
+      border-right: 1px solid #e2e8f0;
+    }
+    .try-panel h2 { margin-top: 0; font-size: 1.1rem; }
+    label { display: block; font-size: 0.85rem; margin-bottom: 0.35rem; color: #475569; }
+    input, select, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.55rem 0.65rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font: inherit;
+      margin-bottom: 0.75rem;
+    }
+    textarea { min-height: 140px; font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.6rem 1.1rem;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    .response {
+      margin-top: 1rem;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 1rem;
+      border-radius: 8px;
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 360px;
+      overflow: auto;
+    }
+    .swagger-wrap { border-top: 1px solid #e2e8f0; }
+    #swagger-ui { padding: 0 1rem 2rem; }
+    .hint { font-size: 0.8rem; color: #64748b; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <h1>TaskFlow API</h1>
+    <div>
+      <a href="/">← На главную</a>
+      &nbsp;·&nbsp;
+      <a href="/openapi.json" target="_blank">openapi.json</a>
+    </div>
+  </header>
+
+  <div class="panels">
+    <section class="try-panel">
+      <h2>Тестирование API</h2>
+      <p class="hint">Все запросы — POST на <code>/api.php</code> с телом <code>{"method":"...", "params":{...}}</code></p>
+
+      <label for="token">Bearer token (необязательно для публичных методов)</label>
+      <input id="token" type="text" placeholder="access_token из localStorage после входа" />
+
+      <label for="method">Метод</label>
+      <select id="method"></select>
+
+      <label for="params">params (JSON)</label>
+      <textarea id="params">{}</textarea>
+
+      <button type="button" id="send">Отправить запрос</button>
+      <div id="response" class="response">Ответ появится здесь…</div>
+    </section>
+
+    <section class="swagger-wrap">
+      <div id="swagger-ui"></div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"></script>
+  <script>
+    const METHODS = {
+      'auth.login': { email: 'admin@example.com', password: 'password' },
+      'auth.register': { email: 'new@example.com', password: 'password123', username: 'user', company: 'My Company' },
+      'tasks.list': { funnel_id: 1 },
+      'tasks.create': { title: 'Test task', column_id: 1, funnel_id: 1 },
+      'tasks.update': { id: 1, is_active: false },
+      'funnels.list': {},
+      'board.columns.list': {},
+      'collabs.list': {},
+      'collabs.get': { id: 1 },
+      'collabs.create': { name: 'New collab', description: '' },
+      'users.me': {},
+      'users.list': {},
+      'reviews.public': {},
+      'reviews.list': {},
+      'admin.users.list': {},
+      'admin.board.columns.list': {},
+      'admin.reviews.list': {},
+    };
+
+    const methodSelect = document.getElementById('method');
+    const paramsEl = document.getElementById('params');
+    Object.keys(METHODS).forEach((m) => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      methodSelect.appendChild(opt);
+    });
+
+    methodSelect.addEventListener('change', () => {
+      paramsEl.value = JSON.stringify(METHODS[methodSelect.value] || {}, null, 2);
+    });
+    paramsEl.value = JSON.stringify(METHODS['auth.login'], null, 2);
+
+    document.getElementById('send').addEventListener('click', async () => {
+      const responseEl = document.getElementById('response');
+      let params = {};
+      try {
+        params = JSON.parse(paramsEl.value || '{}');
+      } catch (e) {
+        responseEl.textContent = 'Ошибка JSON в params: ' + e.message;
+        return;
+      }
+
+      const headers = { 'Content-Type': 'application/json' };
+      const token = document.getElementById('token').value.trim();
+      if (token) headers.Authorization = 'Bearer ' + token;
+
+      responseEl.textContent = 'Загрузка…';
+      try {
+        const res = await fetch('/api.php', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ method: methodSelect.value, params }),
+        });
+        const data = await res.json();
+        responseEl.textContent = JSON.stringify({ status: res.status, ...data }, null, 2);
+      } catch (e) {
+        responseEl.textContent = 'Ошибка сети: ' + e.message;
+      }
+    });
+
+    SwaggerUIBundle({
+      url: '/openapi.json',
+      dom_id: '#swagger-ui',
+      deepLinking: true,
+      presets: [SwaggerUIBundle.presets.apis.default],
+    });
+  </script>
+</body>
+</html>

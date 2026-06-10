@@ -1,6 +1,8 @@
 <template>
   <div class="collab-detail">
     <router-link to="/app/collabs" class="back">← {{ t('collabs.title') }}</router-link>
+    <p v-if="accessError" class="access-error">{{ accessError }}</p>
+    <template v-else>
     <h1>{{ collab?.name || t('collabs.chat') }}</h1>
 
     <div class="layout">
@@ -45,12 +47,13 @@
         />
       </div>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useCollabsStore } from '@/stores/collabs'
@@ -59,11 +62,12 @@ import ChatPanel from '@/components/ChatPanel.vue'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const store = useCollabsStore()
 
 const collabId = computed(() => Number(route.params.id))
-const collab = computed(() => store.collabs.find((c) => c.id === collabId.value))
+const collab = ref(null)
 const messages = computed(() => store.messages)
 const isAdmin = computed(() => collab.value?.member_role === 'admin')
 
@@ -72,6 +76,7 @@ const portalUsers = ref([])
 const selectedUserId = ref(null)
 const adding = ref(false)
 const memberMsg = ref('')
+const accessError = ref('')
 
 let ws = null
 
@@ -80,9 +85,15 @@ const availableUsers = computed(() =>
 )
 
 onMounted(async () => {
-  if (!store.collabs.length) await store.fetchCollabs()
-  await Promise.all([store.fetchMessages(collabId.value), loadMembers(), loadPortalUsers()])
-  connectWs()
+  try {
+    const result = await api('collabs.get', { id: collabId.value })
+    collab.value = result.collab
+    await Promise.all([store.fetchMessages(collabId.value), loadMembers(), loadPortalUsers()])
+    connectWs()
+  } catch (e) {
+    accessError.value = e.message
+    setTimeout(() => router.push({ name: 'collabs' }), 2000)
+  }
 })
 
 onUnmounted(() => {
@@ -139,6 +150,13 @@ async function sendMessage(content) {
   display: inline-block;
   margin-bottom: 1rem;
   font-size: 0.9rem;
+}
+
+.access-error {
+  color: var(--danger);
+  padding: 1rem;
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border-radius: var(--radius);
 }
 
 h1 {

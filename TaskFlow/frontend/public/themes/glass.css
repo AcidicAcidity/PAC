@@ -60,6 +60,34 @@
   background: linear-gradient(135deg, #007aff, #5856d6);
 }
 
+[data-theme="glass"] .message:not(.own) .content {
+  background: rgba(255, 255, 255, 0.72);
+  color: #1a1a2e;
+}
+
+[data-theme="glass"] .message .sender {
+  color: #005ecb;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="glass"] .tabs button {
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+[data-theme="glass"] .top-bar .settings-btn,
+[data-theme="glass"] .landing .feature-card,
+[data-theme="glass"] .landing .review-card {
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+[data-theme="glass"] .column-header {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 [data-theme="glass"] .badge-high { background: rgba(255, 59, 48, 0.2); color: #c41e14; }
 [data-theme="glass"] .badge-medium { background: rgba(255, 149, 0, 0.2); color: #b86e00; }
 [data-theme="glass"] .badge-low { background: rgba(0, 122, 255, 0.2); color: #005ecb; }

@@ -1,0 +1,149 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TaskFlow API",
+    "description": "RPC-style API. All requests are POST to `/api.php` with JSON body `{ \"method\": \"entity.action\", \"params\": { ... } }`. Protected methods require `Authorization: Bearer <access_token>`.",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "http://localhost:8080" }],
+  "paths": {
+    "/api.php": {
+      "post": {
+        "summary": "RPC endpoint",
+        "description": "Send any supported method in the request body.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["method"],
+                "properties": {
+                  "method": { "type": "string", "example": "auth.login" },
+                  "params": { "type": "object", "additionalProperties": true }
+                }
+              },
+              "examples": {
+                "login": {
+                  "value": { "method": "auth.login", "params": { "email": "admin@example.com", "password": "secret123" } }
+                },
+                "tasksList": {
+                  "value": { "method": "tasks.list", "params": { "funnel_id": 1 } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success or business error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": { "result": { "type": "object" } }
+                    },
+                    {
+                      "type": "object",
+                      "properties": { "error": { "type": "string" } }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "bearerAuth": [] }]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "RpcRequest": {
+        "type": "object",
+        "required": ["method"],
+        "properties": {
+          "method": { "type": "string" },
+          "params": { "type": "object" }
+        }
+      }
+    }
+  },
+  "tags": [
+    { "name": "auth", "description": "auth.register, auth.verify, auth.resend, auth.login, auth.refresh" },
+    { "name": "users", "description": "users.me, users.updateProfile, users.list" },
+    { "name": "tasks", "description": "tasks.list, tasks.create, tasks.update, tasks.delete" },
+    { "name": "funnels", "description": "funnels.list" },
+    { "name": "board", "description": "board.columns.list/create/update/delete" },
+    { "name": "collabs", "description": "collabs.list, collabs.get, collabs.create, collabs.members.*, collabs.getMessages" },
+    { "name": "messages", "description": "messages.private.list, messages.send" },
+    { "name": "reviews", "description": "reviews.public, reviews.list, reviews.create" },
+    { "name": "admin", "description": "admin.* methods (portal admin only)" }
+  ],
+  "x-methods": {
+    "public": [
+      "auth.register",
+      "auth.verify",
+      "auth.resend",
+      "auth.login",
+      "auth.refresh",
+      "tasks.list",
+      "reviews.public"
+    ],
+    "protected": [
+      "users.me",
+      "users.updateProfile",
+      "users.list",
+      "tasks.create",
+      "tasks.update",
+      "tasks.delete",
+      "funnels.list",
+      "board.columns.list",
+      "board.columns.create",
+      "board.columns.update",
+      "board.columns.delete",
+      "collabs.list",
+      "collabs.get",
+      "collabs.create",
+      "collabs.members.list",
+      "collabs.addMember",
+      "collabs.removeMember",
+      "collabs.getMessages",
+      "messages.private.list",
+      "messages.send",
+      "reviews.list",
+      "reviews.create"
+    ],
+    "admin": [
+      "admin.users.list",
+      "admin.users.setRole",
+      "admin.users.block",
+      "admin.users.invite",
+      "admin.roles.list",
+      "admin.roles.create",
+      "admin.roles.update",
+      "admin.roles.delete",
+      "admin.collabs.list",
+      "admin.collabs.delete",
+      "admin.tasks.list",
+      "admin.tasks.update",
+      "admin.tasks.delete",
+      "admin.board.columns.list",
+      "admin.board.columns.create",
+      "admin.board.columns.update",
+      "admin.board.columns.delete",
+      "admin.reviews.list",
+      "admin.reviews.approve",
+      "admin.reviews.delete"
+    ]
+  }
+}
