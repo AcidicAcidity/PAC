@@ -53,6 +53,10 @@ export const useAuthStore = defineStore('auth', () => {
     return result
   }
 
+  async function resendVerification(email) {
+    return api('auth.resend', { email })
+  }
+
   async function login(email, password) {
     const result = await api('auth.login', { email, password })
     setSession(result)
@@ -93,6 +97,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     register,
     verify,
+    resendVerification,
     login,
     refresh,
     fetchMe,

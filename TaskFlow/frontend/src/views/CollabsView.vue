@@ -75,11 +75,14 @@ async function create() {
   display: block;
   color: inherit;
   text-decoration: none;
-  transition: box-shadow 0.15s;
+  border-radius: var(--radius-xl);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+  animation: fadeInUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .collab-item:hover {
-  box-shadow: var(--shadow);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover, var(--shadow));
   text-decoration: none;
 }
 

@@ -45,12 +45,23 @@ define('REDIS_HOST', envValue('REDIS_HOST', 'redis'));
 define('REDIS_PORT', (int)envValue('REDIS_PORT', '6379'));
 
 // JWT
-define('JWT_SECRET', envValue('JWT_SECRET', 'super_secret_change_me'));
+define('JWT_SECRET', envValue('JWT_SECRET', 'super_secret_jwt_key_change_in_production_2026'));
 define('JWT_ACCESS_TTL', (int)envValue('JWT_ACCESS_TTL', '900'));
 define('JWT_REFRESH_TTL', (int)envValue('JWT_REFRESH_TTL', '604800'));
 
 // Приложение
 define('APP_DEBUG', envValue('APP_DEBUG', 'false') === 'true');
+define('APP_URL', envValue('APP_URL', 'http://localhost:8080'));
+
+// Почта (SMTP)
+define('MAIL_ENABLED', envValue('MAIL_ENABLED', 'true') === 'true');
+define('MAIL_HOST', envValue('MAIL_HOST', 'mailpit'));
+define('MAIL_PORT', (int)envValue('MAIL_PORT', '1025'));
+define('MAIL_USERNAME', envValue('MAIL_USERNAME', ''));
+define('MAIL_PASSWORD', envValue('MAIL_PASSWORD', ''));
+define('MAIL_ENCRYPTION', envValue('MAIL_ENCRYPTION', 'none'));
+define('MAIL_FROM', envValue('MAIL_FROM', 'noreply@taskflow.local'));
+define('MAIL_FROM_NAME', envValue('MAIL_FROM_NAME', 'TaskFlow'));
 
 // Подключение к PostgreSQL через PDO
 function getDB(): PDO

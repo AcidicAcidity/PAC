@@ -13,6 +13,8 @@ docker compose up -d --build
 
 Откройте [http://localhost:8080](http://localhost:8080)
 
+Письма с кодом подтверждения в dev-режиме попадают в **Mailpit**: [http://localhost:8025](http://localhost:8025)
+
 ## Разработка фронтенда
 
 ```bash

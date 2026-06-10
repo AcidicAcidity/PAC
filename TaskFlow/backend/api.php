@@ -13,6 +13,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/middleware.php';
+require_once __DIR__ . '/mail.php';
 
 // CORS
 setCorsHeaders();
@@ -41,7 +42,7 @@ $params = $request['params'] ?? [];
 checkRateLimit();
 
 // Список публичных методов (не требуют авторизации)
-$publicMethods = ['auth.register', 'auth.verify', 'auth.login', 'auth.refresh', 'tasks.list'];
+$publicMethods = ['auth.register', 'auth.verify', 'auth.resend', 'auth.login', 'auth.refresh', 'tasks.list'];
 
 $requiresAuth = !in_array($method, $publicMethods);
 $currentUser = null;
@@ -59,6 +60,9 @@ try {
             break;
         case $method === 'auth.verify':
             handleAuthVerify($params);
+            break;
+        case $method === 'auth.resend':
+            handleAuthResend($params);
             break;
         case $method === 'auth.login':
             handleAuthLogin($params);
@@ -112,6 +116,9 @@ try {
             break;
         case $method === 'collabs.create':
             handleCollabsCreate($currentUser, $params);
+            break;
+        case $method === 'collabs.members.list':
+            handleCollabsMembersList($currentUser, $params);
             break;
         case $method === 'collabs.addMember':
             handleCollabsAddMember($currentUser, $params);
@@ -281,10 +288,50 @@ function handleAuthRegister(array $params): void
     $expires = date('Y-m-d H:i:s', time() + 3600);
     $stmt->execute([$userId, $code, $expires, $code, $expires]);
 
-    // В реальном проекте — отправка email. Здесь — в лог.
-    error_log("=== VERIFICATION CODE for {$email}: {$code} ===");
+    $emailSent = sendVerificationEmail($email, $code, $username);
 
-    sendResult(['message' => 'Registration successful. Please verify your email.', 'verification_code' => APP_DEBUG ? $code : null]);
+    sendResult([
+        'message' => $emailSent
+            ? 'Registration successful. Verification code sent to your email.'
+            : 'Registration successful. Check your email for the verification code.',
+        'email_sent' => $emailSent,
+        'verification_code' => (!$emailSent && APP_DEBUG) ? $code : null,
+    ]);
+}
+
+function handleAuthResend(array $params): void
+{
+    $db = getDB();
+    $email = trim($params['email'] ?? '');
+
+    if (!$email) {
+        sendError('Email is required');
+    }
+
+    $stmt = $db->prepare('SELECT u.id, u.username, u.is_verified FROM users u WHERE u.email = ?');
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        sendError('User not found');
+    }
+    if ($user['is_verified']) {
+        sendError('Email is already verified');
+    }
+
+    $code = generateVerificationCode();
+    $expires = date('Y-m-d H:i:s', time() + 3600);
+    $db->prepare('INSERT INTO email_verifications (user_id, code, expires) VALUES (?, ?, ?)
+        ON CONFLICT (user_id) DO UPDATE SET code = ?, expires = ?')
+        ->execute([$user['id'], $code, $expires, $code, $expires]);
+
+    $emailSent = sendVerificationEmail($email, $code, $user['username']);
+
+    sendResult([
+        'message' => $emailSent ? 'Verification code resent' : 'Could not send email',
+        'email_sent' => $emailSent,
+        'verification_code' => (!$emailSent && APP_DEBUG) ? $code : null,
+    ]);
 }
 
 function handleAuthVerify(array $params): void
@@ -669,18 +716,49 @@ function handleCollabsCreate(array $user, array $params): void
     }
 }
 
+function handleCollabsMembersList(array $user, array $params): void
+{
+    $db = getDB();
+    $collabId = (int)($params['collab_id'] ?? 0);
+    if (!$collabId) sendError('Collab ID is required');
+
+    $stmt = $db->prepare('SELECT 1 FROM collab_members WHERE collab_id = ? AND user_id = ?');
+    $stmt->execute([$collabId, $user['id']]);
+    if (!$stmt->fetch()) sendError('Not a member of this collab');
+
+    $stmt = $db->prepare('
+        SELECT u.id, u.username, u.email, u.avatar_url, cm.role, cm.joined_at
+        FROM collab_members cm
+        JOIN users u ON cm.user_id = u.id
+        WHERE cm.collab_id = ?
+        ORDER BY cm.joined_at ASC
+    ');
+    $stmt->execute([$collabId]);
+    sendResult(['members' => $stmt->fetchAll()]);
+}
+
 function handleCollabsAddMember(array $user, array $params): void
 {
     $db = getDB();
-    // Проверяем, что пользователь — admin коллаба
+    $collabId = (int)($params['collab_id'] ?? 0);
+    $newUserId = (int)($params['user_id'] ?? 0);
+    if (!$collabId || !$newUserId) sendError('Collab ID and user ID are required');
+
     $stmt = $db->prepare("SELECT role FROM collab_members WHERE collab_id = ? AND user_id = ?");
-    $stmt->execute([$params['collab_id'], $user['id']]);
+    $stmt->execute([$collabId, $user['id']]);
     $role = $stmt->fetchColumn();
 
     if ($role !== 'admin') sendError('Only collab admin can add members');
 
+    $stmt = $db->prepare('SELECT portal_id FROM users WHERE id = ?');
+    $stmt->execute([$newUserId]);
+    $newUserPortal = $stmt->fetchColumn();
+    if (!$newUserPortal || (int)$newUserPortal !== (int)$user['portal_id']) {
+        sendError('User must belong to the same portal');
+    }
+
     $db->prepare("INSERT INTO collab_members (collab_id, user_id, role) VALUES (?, ?, 'executor') ON CONFLICT DO NOTHING")
-        ->execute([$params['collab_id'], $params['user_id']]);
+        ->execute([$collabId, $newUserId]);
     sendResult(['message' => 'Member added']);
 }
 

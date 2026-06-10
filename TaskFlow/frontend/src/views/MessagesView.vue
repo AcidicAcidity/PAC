@@ -2,7 +2,7 @@
   <div class="messages-view">
     <h1>{{ t('messages.title') }}</h1>
     <div class="layout">
-      <div class="users-list card">
+      <div class="users-list card animate-in">
         <div
           v-for="u in users"
           :key="u.id"
@@ -10,11 +10,12 @@
           :class="{ active: selectedUser?.id === u.id }"
           @click="selectUser(u)"
         >
+          <span class="avatar">{{ u.username.charAt(0).toUpperCase() }}</span>
           {{ u.username }}
         </div>
         <p v-if="!users.length" class="empty">{{ t('common.noData') }}</p>
       </div>
-      <div class="chat-area">
+      <div class="chat-area animate-in delay-1">
         <p v-if="!selectedUser" class="hint">{{ t('messages.selectUser') }}</p>
         <ChatPanel
           v-else
@@ -58,12 +59,16 @@ function connectWs() {
   ws = new WebSocket(getWsUrl())
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data)
-    if (data.type === 'private' && selectedUser.value) {
-      const otherId = data.sender_id === auth.user.id ? data.receiver_id : data.sender_id
-      if (otherId === selectedUser.value.id) {
-        messages.value.push(data)
-      }
-    }
+    if (data.type !== 'private' || !selectedUser.value) return
+    if (data.sender_id === auth.user?.id) return
+
+    const otherId = data.sender_id === auth.user.id ? data.receiver_id : data.sender_id
+    if (otherId !== selectedUser.value.id) return
+
+    const exists = messages.value.some(
+      (m) => m.id === data.id || (m.content === data.content && m.sender_id === data.sender_id && m.created_at === data.created_at)
+    )
+    if (!exists) messages.value.push(data)
   }
 }
 
@@ -76,9 +81,6 @@ async function selectUser(user) {
 async function sendMessage(content) {
   if (!selectedUser.value) return
   await api('messages.send', { receiver_id: selectedUser.value.id, content })
-  if (ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'private', target_id: selectedUser.value.id, content }))
-  }
   await selectUser(selectedUser.value)
 }
 </script>
@@ -90,8 +92,8 @@ h1 {
 
 .layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 1rem;
+  grid-template-columns: 260px 1fr;
+  gap: 1.25rem;
   min-height: 450px;
 }
 
@@ -101,14 +103,35 @@ h1 {
 }
 
 .user-item {
-  padding: 0.6rem 0.75rem;
-  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-lg);
   cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.user-item:hover,
+.user-item:hover {
+  transform: translateX(4px);
+}
+
 .user-item.active {
   background: var(--bg-primary);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
 .hint {

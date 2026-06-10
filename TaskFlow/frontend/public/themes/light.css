@@ -8,9 +8,11 @@
   --accent: #3b82f6;
   --border: #e2e8f0;
   --danger: #ef4444;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --radius: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
   --nav-bg: #1e293b;
   --nav-text: #f8fafc;
 }

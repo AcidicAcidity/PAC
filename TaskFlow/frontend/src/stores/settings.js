@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api } from '@/api/client'
 
-const THEMES = ['light', 'dark', 'cyberpunk', 'nature']
+const THEMES = ['light', 'dark', 'glass', 'cyberpunk', 'nature']
 
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref(localStorage.getItem('theme') || 'light')

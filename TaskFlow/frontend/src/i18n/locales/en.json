@@ -28,6 +28,10 @@
     "login": "Sign in",
     "verify": "Email verification",
     "verifyCode": "Verification code",
+    "checkEmail": "We sent a verification code to your email.",
+    "resend": "Resend code",
+    "resendSuccess": "Code resent",
+    "devMailpit": "In local dev, emails go to Mailpit:",
     "submit": "Submit",
     "back": "Back"
   },
@@ -55,7 +59,11 @@
     "name": "Name",
     "description": "Description",
     "chat": "Collab chat",
-    "send": "Send"
+    "send": "Send",
+    "members": "Members",
+    "addMember": "Add member",
+    "selectMember": "Select employee",
+    "memberAdded": "Member added"
   },
   "messages": {
     "title": "Private messages",
@@ -97,6 +105,7 @@
   "themes": {
     "light": "Light",
     "dark": "Dark",
+    "glass": "Glass (iOS)",
     "cyberpunk": "Cyberpunk",
     "nature": "Nature"
   },

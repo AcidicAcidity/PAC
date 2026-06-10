@@ -1,5 +1,5 @@
 <template>
-  <div class="task-card" :class="`priority-${task.priority}`">
+  <div class="task-card animate-card" :class="`priority-${task.priority}`">
     <div class="task-title">{{ task.title }}</div>
     <div v-if="task.description" class="task-desc">{{ truncate(task.description) }}</div>
     <div class="task-meta">
@@ -29,18 +29,24 @@ function truncate(text, len = 80) {
 .task-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  padding: 0.9rem 1rem;
   cursor: grab;
-  transition: box-shadow 0.15s;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
 }
 
 .task-card:hover {
-  box-shadow: var(--shadow);
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: var(--shadow-hover, var(--shadow));
 }
 
 .task-card:active {
   cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.animate-card {
+  animation: scaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .task-title {

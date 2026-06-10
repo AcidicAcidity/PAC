@@ -7,7 +7,11 @@
   --accent: #ff00ff;
   --border: #7c3aed;
   --danger: #ff3366;
+  --radius: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
   --shadow: 0 0 12px rgba(255, 0, 255, 0.15);
+  --shadow-hover: 0 0 20px rgba(255, 0, 255, 0.25);
   --nav-bg: #0d0d1a;
   --nav-text: #00ffff;
 }

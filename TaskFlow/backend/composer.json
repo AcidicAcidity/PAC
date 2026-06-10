@@ -4,7 +4,8 @@
     "type": "project",
     "require": {
         "php": ">=8.1",
-        "firebase/php-jwt": "^6.0",
+        "firebase/php-jwt": "^7.0",
+        "phpmailer/phpmailer": "^6.9",
         "predis/predis": "^2.0",
         "cboden/ratchet": "^0.4"
     },
@@ -12,7 +13,8 @@
         "files": [
             "config.php",
             "auth.php",
-            "middleware.php"
+            "middleware.php",
+            "mail.php"
         ]
     }
 }

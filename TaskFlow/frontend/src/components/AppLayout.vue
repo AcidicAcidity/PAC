@@ -83,7 +83,7 @@ function handleLogout() {
   width: 36px;
   height: 36px;
   background: var(--accent);
-  border-radius: 8px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,22 +94,26 @@ function handleLogout() {
 .nav-link {
   display: block;
   padding: 0.75rem 1.25rem;
+  margin: 0 0.5rem;
   color: var(--nav-text);
   opacity: 0.8;
   border: none;
   background: none;
-  width: 100%;
+  width: calc(100% - 1rem);
   text-align: left;
   cursor: pointer;
   font: inherit;
   text-decoration: none;
+  border-radius: var(--radius-lg);
+  transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
 }
 
 .nav-link:hover,
 .nav-link.active {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   text-decoration: none;
+  transform: translateX(2px);
 }
 
 .logout {

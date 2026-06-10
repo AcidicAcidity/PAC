@@ -77,7 +77,13 @@ async function submit() {
     if (result.verification_code) {
       devCode.value = result.verification_code
     }
-    router.push({ name: 'verify', query: { email: form.value.email } })
+    router.push({
+      name: 'verify',
+      query: {
+        email: form.value.email,
+        ...(result.verification_code ? { devCode: result.verification_code } : {}),
+      },
+    })
   } catch (e) {
     error.value = e.message
   } finally {

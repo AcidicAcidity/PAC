@@ -1,9 +1,10 @@
 <template>
   <div class="kanban">
     <div
-      v-for="column in columns"
+      v-for="(column, idx) in columns"
       :key="column.id"
-      class="kanban-column"
+      class="kanban-column animate-in"
+      :style="{ animationDelay: `${idx * 0.06}s` }"
       @dragover.prevent
       @drop="onDrop($event, column.id)"
     >
@@ -57,24 +58,25 @@ function onDrop(event, columnId) {
 <style scoped>
 .kanban {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   overflow-x: auto;
   padding-bottom: 1rem;
   min-height: 400px;
 }
 
 .kanban-column {
-  min-width: 280px;
-  max-width: 320px;
+  min-width: 290px;
+  max-width: 330px;
   flex-shrink: 0;
   background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border);
+  overflow: hidden;
 }
 
 .column-header {
-  padding: 0.75rem 1rem;
-  border-top: 3px solid var(--accent);
+  padding: 0.85rem 1.1rem;
+  border-top: 4px solid var(--accent);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -87,17 +89,17 @@ function onDrop(event, columnId) {
 
 .count {
   background: var(--bg-primary);
-  padding: 0.15rem 0.5rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
   font-size: 0.75rem;
   color: var(--text-secondary);
 }
 
 .column-body {
-  padding: 0.5rem;
+  padding: 0.65rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.65rem;
   min-height: 200px;
 }
 </style>

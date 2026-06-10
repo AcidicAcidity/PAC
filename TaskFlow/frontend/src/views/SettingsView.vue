@@ -11,6 +11,7 @@
         <select v-model="form.theme">
           <option value="light">{{ t('themes.light') }}</option>
           <option value="dark">{{ t('themes.dark') }}</option>
+          <option value="glass">{{ t('themes.glass') }}</option>
           <option value="cyberpunk">{{ t('themes.cyberpunk') }}</option>
           <option value="nature">{{ t('themes.nature') }}</option>
         </select>
