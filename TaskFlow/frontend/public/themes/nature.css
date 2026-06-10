@@ -1,0 +1,13 @@
+[data-theme="nature"] {
+  --bg-primary: #f0f7f0;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #1a3c2a;
+  --text-secondary: #5a7a65;
+  --accent: #2d8a4e;
+  --border: #c8e6c9;
+  --danger: #c62828;
+  --shadow: 0 2px 8px rgba(45, 138, 78, 0.1);
+  --nav-bg: #1b5e20;
+  --nav-text: #e8f5e9;
+}

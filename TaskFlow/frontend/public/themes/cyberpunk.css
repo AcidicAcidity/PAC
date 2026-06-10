@@ -1,0 +1,17 @@
+[data-theme="cyberpunk"] {
+  --bg-primary: #0a0a12;
+  --bg-secondary: #12121f;
+  --bg-card: #16162a;
+  --text-primary: #e0e0ff;
+  --text-secondary: #a78bfa;
+  --accent: #ff00ff;
+  --border: #7c3aed;
+  --danger: #ff3366;
+  --shadow: 0 0 12px rgba(255, 0, 255, 0.15);
+  --nav-bg: #0d0d1a;
+  --nav-text: #00ffff;
+}
+
+[data-theme="cyberpunk"] .btn {
+  box-shadow: 0 0 8px rgba(255, 0, 255, 0.4);
+}
