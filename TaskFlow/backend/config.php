@@ -27,24 +27,30 @@ function loadEnv(string $path): void
 // Загружаем .env из корня проекта
 loadEnv(__DIR__ . '/../.env');
 
+function envValue(string $key, string $default = ''): string
+{
+    $value = $_ENV[$key] ?? getenv($key);
+    return $value !== false && $value !== '' ? (string)$value : $default;
+}
+
 // Конфигурация БД
-define('DB_HOST', $_ENV['DB_HOST'] ?? 'db');
-define('DB_PORT', $_ENV['DB_PORT'] ?? '5432');
-define('DB_NAME', $_ENV['DB_NAME'] ?? 'taskflow');
-define('DB_USER', $_ENV['DB_USER'] ?? 'taskflow');
-define('DB_PASSWORD', $_ENV['DB_PASSWORD'] ?? 'taskflow_secret');
+define('DB_HOST', envValue('DB_HOST', 'db'));
+define('DB_PORT', envValue('DB_PORT', '5432'));
+define('DB_NAME', envValue('DB_NAME', 'taskflow'));
+define('DB_USER', envValue('DB_USER', 'taskflow'));
+define('DB_PASSWORD', envValue('DB_PASSWORD', 'taskflow_secret'));
 
 // Redis
-define('REDIS_HOST', $_ENV['REDIS_HOST'] ?? 'redis');
-define('REDIS_PORT', (int)($_ENV['REDIS_PORT'] ?? 6379));
+define('REDIS_HOST', envValue('REDIS_HOST', 'redis'));
+define('REDIS_PORT', (int)envValue('REDIS_PORT', '6379'));
 
 // JWT
-define('JWT_SECRET', $_ENV['JWT_SECRET'] ?? 'super_secret_change_me');
-define('JWT_ACCESS_TTL', (int)($_ENV['JWT_ACCESS_TTL'] ?? 900));
-define('JWT_REFRESH_TTL', (int)($_ENV['JWT_REFRESH_TTL'] ?? 604800));
+define('JWT_SECRET', envValue('JWT_SECRET', 'super_secret_change_me'));
+define('JWT_ACCESS_TTL', (int)envValue('JWT_ACCESS_TTL', '900'));
+define('JWT_REFRESH_TTL', (int)envValue('JWT_REFRESH_TTL', '604800'));
 
 // Приложение
-define('APP_DEBUG', ($_ENV['APP_DEBUG'] ?? 'false') === 'true');
+define('APP_DEBUG', envValue('APP_DEBUG', 'false') === 'true');
 
 // Подключение к PostgreSQL через PDO
 function getDB(): PDO
