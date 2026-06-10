@@ -1,32 +1,29 @@
-# TaskFlow — Бэкенд (Apache + PHP 8.1)
+# TaskFlow — Бэкенд (Apache + PHP 8.1) + сборка фронтенда
+FROM node:20-alpine AS frontend-build
+WORKDIR /app
+COPY frontend/package.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
 FROM php:8.1-apache
 
-# Устанавливаем расширения PHP
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     && docker-php-ext-install pdo_pgsql opcache \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем Redis-расширение
 RUN pecl install redis && docker-php-ext-enable redis
-
-# Включаем mod_rewrite для Apache
 RUN a2enmod rewrite
 
-# Копируем исходный код
 COPY backend/ /var/www/html/
-COPY frontend/dist/ /var/www/html/frontend/
+COPY --from=frontend-build /app/dist/ /var/www/html/
 
-# Устанавливаем Composer-зависимости
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www/html
 RUN composer install --no-dev --optimize-autoloader
 
-# Настройка Apache: корень — папка backend, фронтенд доступен по /frontend
-RUN sed -i 's|/var/www/html|/var/www/html|g' /etc/apache2/sites-available/000-default.conf
-
-# Права на запись (для логов)
 RUN chown -R www-data:www-data /var/www/html
 
 EXPOSE 80
