@@ -10,6 +10,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../auth.php';
+require_once __DIR__ . '/../middleware.php';
 
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
@@ -145,7 +146,7 @@ class ChatServer implements MessageComponentInterface
 }
 
 // Запуск сервера
-$port = (int)($_ENV['WS_PORT'] ?? 8080);
+$port = (int)envValue('WS_PORT', '8080');
 echo "WebSocket server starting on port {$port}...\n";
 
 $server = IoServer::factory(
