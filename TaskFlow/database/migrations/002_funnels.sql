@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS funnels (
 CREATE INDEX IF NOT EXISTS idx_funnels_portal ON funnels(portal_id);
 CREATE INDEX IF NOT EXISTS idx_funnels_collab ON funnels(collab_id);
 
--- Главная воронка для существующих порталов
+-- Общая воронка для существующих порталов
 INSERT INTO funnels (portal_id, name, is_main)
-SELECT p.id, 'Главная', TRUE
+SELECT p.id, 'Общая', TRUE
 FROM portals p
 WHERE NOT EXISTS (
     SELECT 1 FROM funnels f WHERE f.portal_id = p.id AND f.is_main = TRUE

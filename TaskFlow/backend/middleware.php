@@ -26,6 +26,32 @@ function checkRateLimit(): void
     }
 }
 
+// Опциональная авторизация: возвращает пользователя при валидном токене, иначе null
+function tryAuthenticateOptional(): ?array
+{
+    $headers = getallheaders();
+    $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+
+    if (!str_starts_with($authHeader, 'Bearer ')) {
+        return null;
+    }
+
+    $token = substr($authHeader, 7);
+
+    try {
+        $payload = verifyJWT($token);
+        $user = getUserById($payload->sub);
+
+        if (!$user || $user['is_blocked']) {
+            return null;
+        }
+
+        return $user;
+    } catch (\Exception $e) {
+        return null;
+    }
+}
+
 // Проверка JWT из заголовка Authorization
 function authenticate(): array
 {

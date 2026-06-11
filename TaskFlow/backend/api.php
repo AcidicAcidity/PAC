@@ -84,7 +84,7 @@ try {
 
         // ============ TASKS ============
         case $method === 'tasks.list':
-            handleTasksList($currentUser, $params);
+            handleTasksList($currentUser ?? tryAuthenticateOptional(), $params);
             break;
         case $method === 'tasks.create':
             handleTasksCreate($currentUser, $params);
@@ -272,9 +272,9 @@ function handleAuthRegister(array $params): void
                     ->execute([$directorRoleId, $userId]);
             }
 
-            // Главная воронка канбан-доски
+            // Общая воронка канбан-доски
             $db->prepare('INSERT INTO funnels (portal_id, name, is_main) VALUES (?, ?, TRUE)')
-                ->execute([$portalId, 'Главная']);
+                ->execute([$portalId, 'Общая']);
 
             // Создаём дефолтные колонки канбан-доски
             $defaultColumns = [

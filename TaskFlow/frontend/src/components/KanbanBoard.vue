@@ -47,7 +47,8 @@ const emit = defineEmits(['edit', 'move', 'toggle-active'])
 let draggedTask = null
 
 function tasksInColumn(columnId) {
-  return props.tasks.filter((t) => t.column_id === columnId)
+  const colId = Number(columnId)
+  return props.tasks.filter((t) => Number(t.column_id) === colId)
 }
 
 function onDragStart(event, task) {

@@ -21,7 +21,7 @@
         </div>
         <div class="form-group">
           <label>{{ t('board.column') }}</label>
-          <select v-model="form.column_id">
+          <select v-model.number="form.column_id">
             <option v-for="col in columns" :key="col.id" :value="col.id">{{ col.title }}</option>
           </select>
         </div>
